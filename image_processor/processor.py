@@ -2,7 +2,8 @@
 import asyncio
 from traceback import print_exc
 from keras import utils
-from detects import extract_face_from_image, get_model_scores
+# from detects import extract_face_from_image, get_model_scores
+from image_processor.detects import extract_face_from_image, get_model_scores
 
 
 async def process_image_from_url(db, image):

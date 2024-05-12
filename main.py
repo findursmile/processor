@@ -5,32 +5,46 @@ import pika
 import sys
 import os
 
+from pika.adapters.asyncio_connection import AsyncioConnection
+
 from surrealdb import Surreal
 
 from image_processor import processor
 
 
 async def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    credentials = pika.PlainCredentials('guest', 'guest')
+
+    global connection
+    connection = AsyncioConnection(
+            parameters=pika.ConnectionParameters(
+                host='localhost',
+                credentials=credentials,
+                ),
+            on_open_callback=on_connect
+            )
+
+    connection.ioloop.run_forever()
+
+
+def on_connect():
     channel = connection.channel()
-    async with Surreal("ws://108.61.195.50:8000/rpc") as db:
-        await db.signin({"user": "root", "pass": "root"})
-        await db.use("test", "test")
     channel.queue_declare(queue='queue')
 
-    def callback(ch, method, properties, body):
+    async def callback(ch, method, properties, body):
         try:
+            async with Surreal("ws://108.61.195.50:8000/rpc") as db:
+                await db.signin({"user": "root", "pass": "root"})
+                await db.use("test", "test")
             print(f" [x] Received {body}")
             data = json.loads(body.decode('utf-8'))
-            asyncio.run(processor.handle_event(data, db))
+            await processor.handle_event(data, db)
             print('processed')
         except Exception as e:
             print(f"An error occurred while processing message: {e}")
 
     channel.basic_consume(queue='queue', on_message_callback=callback, auto_ack=True)
 
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
 
 
 if __name__ == '__main__':
