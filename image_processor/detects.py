@@ -8,7 +8,12 @@ from matplotlib import pyplot as plt
 from numpy import asarray
 
 detector = mtcnn.MTCNN()
-
+model = VGGFace(
+        model='resnet50',
+        include_top=False,
+        input_shape=(224, 224, 3),
+        pooling='avg'
+        )
 
 def extract_face_from_image(image_path, required_size=(224, 224)):
     try:
@@ -49,13 +54,6 @@ def get_model_scores(faces):
     try:
         samples = asarray(faces, 'float32')
         samples = preprocess_input(samples, version=2)
-
-        model = VGGFace(
-            model='resnet50',
-            include_top=False,
-            input_shape=(224, 224, 3),
-            pooling='avg'
-        )
 
         scores = model.predict(samples)
 

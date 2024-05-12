@@ -2,7 +2,6 @@
 import asyncio
 from traceback import print_exc
 from keras import utils
-from surrealdb import Surreal
 from detects import extract_face_from_image, get_model_scores
 
 
@@ -37,14 +36,12 @@ async def process_image_from_url(db, image):
         await db.query(f'UPDATE {image["id"]} SET status = "processed"')
     except Exception as e:
         print("An error occurred while processing an image:")
-        print_exc()
 
 
-async def process_images_from_urls(data, db):
+async def handle_event(data, db):
     try:
         if isinstance(data, dict) and "event" in data:
             event = await db.query(f'select id,status,->event_of.out.* from event:{data["event"]}')
-            print(event)
             for item in event:
                 results = item.get("result", [])
                 if results:
@@ -57,12 +54,4 @@ async def process_images_from_urls(data, db):
             print("Invalid data format or missing event key.")
     except Exception as e:
         print("An error occurred during main execution:")
-        print_exc()
 
-
-async def main(data, db):
-    await process_images_from_urls(data, db)
-
-
-if __name__ == "__main__":
-    asyncio.run(main(data=[], db=[]))

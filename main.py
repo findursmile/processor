@@ -1,4 +1,4 @@
-# image_processor/main.py
+# main.py
 import asyncio
 import json
 import pika
@@ -7,7 +7,7 @@ import os
 
 from surrealdb import Surreal
 
-from processor import handle_event
+from image_processor import processor
 
 
 async def main():
@@ -22,7 +22,7 @@ async def main():
         try:
             print(f" [x] Received {body}")
             data = json.loads(body.decode('utf-8'))
-            asyncio.run(handle_event(data, db))
+            asyncio.run(processor.handle_event(data, db))
             print('processed')
         except Exception as e:
             print(f"An error occurred while processing message: {e}")
@@ -42,3 +42,4 @@ if __name__ == '__main__':
             sys.exit(0)
         except SystemExit:
             os._exit(0)
+
