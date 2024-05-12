@@ -2,7 +2,7 @@
 import asyncio
 from traceback import print_exc
 from keras import utils
-# from detects import extract_face_from_image, get_model_scores
+from surrealdb import Surreal
 from image_processor.detects import extract_face_from_image, get_model_scores
 
 
@@ -39,8 +39,11 @@ async def process_image_from_url(db, image):
         print("An error occurred while processing an image:")
 
 
-async def handle_event(data, db):
+async def handle_event(data, db=None):
     try:
+        async with Surreal("ws://108.61.195.50:8000/rpc") as db:
+            await db.signin({"user": "root", "pass": "root"})
+            await db.use("test", "test")
         if isinstance(data, dict) and "event" in data:
             event = await db.query(f'select id,status,->event_of.out.* from event:{data["event"]}')
             for item in event:
