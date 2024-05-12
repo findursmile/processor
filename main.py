@@ -12,7 +12,7 @@ from surrealdb import Surreal
 from image_processor import processor
 
 
-async def main():
+def main():
     credentials = pika.PlainCredentials('guest', 'guest')
 
     global connection
@@ -27,11 +27,11 @@ async def main():
     connection.ioloop.run_forever()
 
 
-def on_connect():
+def on_connect(connection):
     channel = connection.channel()
     channel.queue_declare(queue='queue')
 
-    async def callback(ch, method, properties, body):
+    async def callback(_ch, _method, _properties, body):
         try:
             async with Surreal("ws://108.61.195.50:8000/rpc") as db:
                 await db.signin({"user": "root", "pass": "root"})
@@ -49,7 +49,7 @@ def on_connect():
 
 if __name__ == '__main__':
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
         print('Interrupted')
         try:
