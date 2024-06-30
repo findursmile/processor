@@ -4,20 +4,20 @@ import json
 import pika
 import sys
 import os
-from pika.adapters.asyncio_connection import AsyncioConnection
-from surrealdb import Surreal
 from image_processor import processor
-
+from dotenv import load_dotenv
 
 def main():
-    credentials = pika.PlainCredentials('guest', 'guest')
+    load_dotenv()
+    credentials = pika.PlainCredentials(os.environ['RABBITMQ_USERNAME'], os.environ['RABBITMQ_PASSWORD'])
     parameters = pika.ConnectionParameters(
-                host='127.0.0.1',
+                host=os.environ['RABBITMQ_HOST'],
+                port=os.environ['RABBITMQ_PORT'],
                 credentials=credentials,
                 heartbeat=60
                 )
 
-    parameters = pika.URLParameters("amqp://guest:guest@localhost:5672")
+    # parameters = pika.URLParameters("amqp://guest:guest@localhost:5672")
 
     global connection
     connection = pika.BlockingConnection(
@@ -26,7 +26,7 @@ def main():
 
     channel = connection.channel()
 
-    channel.queue_declare(queue='queue')
+    channel.queue_declare(queue=os.environ['RABBITMQ_QUEUE'])
 
     def callback(ch, method, properties, body):
         try:
@@ -37,13 +37,13 @@ def main():
         except Exception as e:
             print(f"An error occurred while processing message: {e}")
 
-    channel.basic_consume(queue='queue', on_message_callback=callback, auto_ack=True)
+    channel.basic_consume(
+            queue=os.environ['RABBITMQ_QUEUE'],
+            on_message_callback=callback,
+            auto_ack=True)
 
     print(' [*] Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()
-
-
-
 
 if __name__ == '__main__':
     try:
