@@ -17,8 +17,6 @@ def main():
                 heartbeat=60
                 )
 
-    # parameters = pika.URLParameters("amqp://guest:guest@localhost:5672")
-
     global connection
     connection = pika.BlockingConnection(
             parameters=parameters,

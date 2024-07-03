@@ -15,7 +15,7 @@ model = VGGFace(
         pooling='avg'
         )
 
-def extract_face_from_image(image_path, required_size=(224, 224)):
+async def extract_face_from_image(image_path, required_size=(224, 224)):
     try:
         image = plt.imread(image_path)
         faces = detector.detect_faces(image)
@@ -26,10 +26,6 @@ def extract_face_from_image(image_path, required_size=(224, 224)):
 
         face_images = []
 
-        fig, ax = plt.subplots()
-
-        ax.imshow(image)
-
         for face in faces:
             x1, y1, width, height = face['box']
             x2, y2 = x1 + width, y1 + height
@@ -38,9 +34,6 @@ def extract_face_from_image(image_path, required_size=(224, 224)):
 
             face_image = Image.fromarray(face_boundary)
             face_image = face_image.resize(required_size)
-
-            rect = patches.Rectangle((x1, y1), width, height, linewidth=1, edgecolor='r', facecolor='none')
-            ax.add_patch(rect)
             face_array = asarray(face_image)
             face_images.append(face_array)
 
@@ -50,7 +43,7 @@ def extract_face_from_image(image_path, required_size=(224, 224)):
         return []
 
 
-def get_model_scores(faces):
+async def get_model_scores(faces):
     try:
         samples = asarray(faces, 'float32')
         samples = preprocess_input(samples, version=2)
