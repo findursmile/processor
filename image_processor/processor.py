@@ -1,42 +1,8 @@
 import asyncio
 import os
-import traceback
 from keras import utils
 from surrealdb import Surreal
 from image_processor.detects import extract_face_from_image, get_model_scores
-
-async def process_image_from_url(db, image):
-    try:
-        path = utils.get_file(origin=f'{os.environ["ASSETS_URL"]}/{image["image_uri"]}')
-        await db.query(f'UPDATE {image["id"]} SET status = "processing"')
-
-        extract_face = extract_face_from_image(path)
-
-        if not extract_face:
-            await db.query(f'UPDATE {image["id"]} SET status = "no_faces_detected"')
-            print("No faces detected in the image.")
-            return
-
-        faces = get_model_scores(extract_face)
-
-        if not faces or len(faces):
-            await db.query(f'UPDATE {image["id"]} SET status = "no_faces_detected"')
-            print("Unable to get model scores from the image.")
-            return
-
-        for face in faces:
-            face_encoding = await db.create(
-                "face_encoding",
-                {"position": [], "encoding": face.tolist()}
-            )
-            await db.query(f"RELATE {image['id']}->face_of->{face_encoding[0]['id']}")
-            print("Face encoding stored")
-
-        await db.query(f'UPDATE {image["id"]} SET status = "processed"')
-    except Exception as e:
-        print("An error occurred while processing an image:")
-        traceback.print_exception(e)
-
 
 async def handle_event(data):
     pr = Processor()
@@ -86,12 +52,14 @@ class Processor:
             )
             await self.db.query(f"RELATE {imageId}->face_of->{face_encoding[0]['id']}")
 
+        await self.db.query(f'UPDATE {imageId} SET status = "processed"')
+
         print("Face encoding stored")
 
     async def handle_event(self, data):
         try:
             if isinstance(data, dict) and "event" in data:
-                event = await self.db.query(f'select * from image where event = {data["event"]}')
+                event = await self.db.query(f'select * from image where event = {data["event"]} and status="pending"')
                 for item in event:
                     results = item.get("result", [])
                     if results:
@@ -103,7 +71,12 @@ class Processor:
             else:
                 print("Invalid data format or missing event key.")
         except Exception as e:
-            print("An error occurred during main execution:" )
+            print("An error occurred during handle_event:" )
             print(e)
-            traceback.print_exception(e)
+
+    async def find_images(self, faces):
+        images = []
+        for face in faces:
+            images = await self.db.query(f'select <-face_of.in.image_uri as uri from face_encoding where vector::similarity::cosine({face.tolist()}, encoding) > 0.8')
+            print(images)
 
