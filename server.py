@@ -8,8 +8,21 @@ from image_processor.processor import Processor
 load_dotenv()
 app = FastAPI()
 
+async def get_processor():
+    p = Processor()
+    await p.init_db()
+    return p
+
+@app.get("/events/{event_id}")
+async def event_detail(event_id: str):
+    p = await get_processor()
+    results = await p.db.query(f'select * from event where id = {event_id}')
+
+    if len(results) and results[0]['status'] == 'OK':
+        return results[0]['result']
+
 @app.post("/events/{event_id}/images")
-async def face_encodings(file: UploadFile):
+async def face_encodings(event_id: str, file: UploadFile):
     tmpFile = tempfile.NamedTemporaryFile()
 
     tmpFile.write(await file.read())
@@ -25,8 +38,5 @@ async def face_encodings(file: UploadFile):
         print("Unable to get model scores from the image.")
         return []
 
-    p = Processor()
-    await p.init_db()
-    await p.find_images(faces)
-
-    return []
+    p = await get_processor()
+    return await p.find_images(event_id, faces)

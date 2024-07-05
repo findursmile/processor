@@ -48,7 +48,7 @@ class Processor:
         for encoding in encodings:
             face_encoding = await self.db.create(
                 "face_encoding",
-                {"position": [], "encoding": encoding.tolist()}
+                {"position": [], "encoding": encoding.tolist(), "image": imageId}
             )
             await self.db.query(f"RELATE {imageId}->face_of->{face_encoding[0]['id']}")
 
@@ -74,9 +74,18 @@ class Processor:
             print("An error occurred during handle_event:" )
             print(e)
 
-    async def find_images(self, faces):
-        images = []
+    async def find_images(self, event_id, faces):
+        where = []
         for face in faces:
-            images = await self.db.query(f'select <-face_of.in.image_uri as uri from face_encoding where vector::similarity::cosine({face.tolist()}, encoding) > 0.8')
-            print(images)
+            where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.8')
 
+        sql = f'select * from image where event={event_id} and ->(face_of where '
+        sql = sql + ' OR '.join(where) + ')'
+
+        results = await self.db.query(sql)
+
+        if len(results) and results[0]['status'] == 'OK':
+            print(results[0])
+            return results[0]['result']
+
+        return []
