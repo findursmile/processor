@@ -2,11 +2,23 @@ from fastapi import FastAPI, UploadFile
 from image_processor.detects import extract_face_from_image, get_model_scores
 from dotenv import load_dotenv
 import tempfile
-
+from fastapi.middleware.cors import CORSMiddleware
 from image_processor.processor import Processor
 
 load_dotenv()
 app = FastAPI()
+
+origins=[
+        "http://localhost:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 async def get_processor():
     p = Processor()

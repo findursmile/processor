@@ -77,7 +77,7 @@ class Processor:
     async def find_images(self, event_id, faces):
         where = []
         for face in faces:
-            where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.8')
+            where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.6')
 
         sql = f'select * from image where event={event_id} and ->(face_of where '
         sql = sql + ' OR '.join(where) + ')'
