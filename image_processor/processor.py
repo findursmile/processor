@@ -85,7 +85,6 @@ class Processor:
         results = await self.db.query(sql)
 
         if len(results) and results[0]['status'] == 'OK':
-            print(results[0])
             return results[0]['result']
 
         return []
