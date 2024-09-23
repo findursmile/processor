@@ -1,0 +1,11 @@
+FROM python:3-alpine
+
+WORKDIR /app
+
+COPY ./requirements.txt .
+
+RUN wget https://github.com/findursmile/keras-vggface/archive/refs/tags/v0.0.1-beta.1.tar.gz
+
+RUN pip install v0.0.1-beta.1.tar.gz
+
+RUN pip install -r requirements.txt

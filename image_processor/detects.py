@@ -1,5 +1,4 @@
 # image_processor/detects.py
-import matplotlib.patches as patches
 import mtcnn
 from PIL import Image
 from keras_vggface.utils import preprocess_input

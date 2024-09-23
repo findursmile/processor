@@ -1,0 +1,4 @@
+__pycache__
+.git
+.venv
+image_processor/__pycache__
