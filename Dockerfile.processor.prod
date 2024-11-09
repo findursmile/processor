@@ -1,0 +1,15 @@
+FROM tensorflow/tensorflow:latest
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git python3-opencv
+
+RUN pip install --upgrade pip
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . /app
+
+CMD ["python", "./main.py"]

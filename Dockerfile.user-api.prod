@@ -1,0 +1,10 @@
+FROM ghcr.io/findursmile/processor
+
+WORKDIR /app
+
+COPY . .
+
+RUN pip install "fastapi[standard]"
+
+CMD ["fastapi", "run", "./server.py"]
+
