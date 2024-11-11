@@ -28,6 +28,7 @@ def main():
     channel = connection.channel()
 
     channel.queue_declare(queue=os.environ['RABBITMQ_QUEUE'])
+    channel.queue_declare(queue='object_detected')
 
     def callback(ch, method, properties, body):
         try:
@@ -37,6 +38,20 @@ def main():
             print('processed')
         except Exception as e:
             print(f"An error occurred while processing message: {e}")
+
+    def detect_event(ch, method, properties, body):
+        try:
+            print(f" [x] Received {body} --- on object_detected")
+            data = json.loads(body.decode('utf-8'))
+            asyncio.run(processor.detect_event(data))
+            print('processed')
+        except Exception as e:
+            print(f"An error occurred while processing message: {e}")
+
+    channel.basic_consume(
+            queue='object_detected',
+            on_message_callback=detect_event,
+            auto_ack=True)
 
     channel.basic_consume(
             queue=os.environ['RABBITMQ_QUEUE'],
@@ -49,6 +64,7 @@ def main():
 if __name__ == '__main__':
     while True:
         try:
+            print('ON the main loop')
             main()
         except AMQPConnectionError:
             time.sleep(10)
