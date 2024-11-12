@@ -7,4 +7,4 @@ keras_vggface @ git+https://github.com/findursmile/keras-vggface.git@81a62f16942
 Keras-Applications==1.0.8
 matplotlib==3.8.4
 python-dotenv==1.0.1
-telegram==0.0.1
+python-telegram-bot==21.7

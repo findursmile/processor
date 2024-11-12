@@ -40,7 +40,7 @@ def detect_event(ch, method, properties, body):
         print(f" [x] Received {body} --- on object_detected")
         data = json.loads(body.decode('utf-8'))
         asyncio.run(processor.detect_event(data))
-        print('processed')
+        print('detect_event was processed')
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
 

@@ -39,7 +39,7 @@ async def extract_face_from_image(image_path, required_size=(224, 224)):
         return face_images
     except Exception as e:
         print(f"An error occurred while extracting faces from image: {e}")
-        return []
+        return None
 
 
 async def get_model_scores(faces):

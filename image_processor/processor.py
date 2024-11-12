@@ -83,10 +83,10 @@ class Processor:
     async def detect_event(self, data):
         try:
             if isinstance(data, dict) and "path" in data:
-                path = data['path']
+                path = utils.get_file(origin=data['path'])
                 extract_face = await extract_face_from_image(path)
 
-                if not extract_face:
+                if not extract_face or len(extract_face) == 0:
                     print("No faces detected in the image.")
                     return
 
@@ -96,7 +96,7 @@ class Processor:
                     print("Unable to get model scores from the image.")
                     return
 
-                events = self.find_tenant_events_by_faces(data['tenant_id'], faces)
+                events = await self.find_tenant_events_by_faces(data['tenant_id'], faces)
 
                 token = os.getenv("TELEGRAM_BOT_TOKEN") or ''
                 chat_id = os.getenv("TELEGRAM_BOT_CHAT_ID") or ''
