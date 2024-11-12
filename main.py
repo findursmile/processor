@@ -22,6 +22,7 @@ connection = pika.BlockingConnection(
 )
 
 channel = connection.channel()
+channel.queue_declare(queue='object_detected')
 
 channel.queue_declare(queue=os.environ['RABBITMQ_QUEUE'])
 
@@ -34,7 +35,20 @@ def callback(ch, method, properties, body):
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
 
-threads = []
+def detect_event(ch, method, properties, body):
+    try:
+        print(f" [x] Received {body} --- on object_detected")
+        data = json.loads(body.decode('utf-8'))
+        asyncio.run(processor.detect_event(data))
+        print('processed')
+    except Exception as e:
+        print(f"An error occurred while processing message: {e}")
+
+channel.basic_consume(
+        queue='object_detected',
+        on_message_callback=detect_event,
+        auto_ack=True)
+
 
 channel.basic_consume(
         queue=os.environ['RABBITMQ_QUEUE'],
@@ -48,9 +62,5 @@ try:
 except KeyboardInterrupt:
     print('Interrupted')
     channel.stop_consuming()
-
-# Wait for all to complete
-for thread in threads:
-    thread.join()
 
 connection.close()

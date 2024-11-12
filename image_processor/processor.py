@@ -1,5 +1,6 @@
 import asyncio
 import os
+import telegram
 from keras import utils
 from surrealdb import Surreal
 from image_processor.detects import extract_face_from_image, get_model_scores
@@ -8,6 +9,11 @@ async def handle_event(data):
     pr = Processor()
     await pr.init_db()
     await pr.handle_event(data)
+
+async def detect_event(data):
+    pr = Processor()
+    await pr.init_db()
+    await pr.detect_event(data)
 
 class Processor:
     async def init_db(self):
@@ -74,12 +80,57 @@ class Processor:
             print("An error occurred during handle_event:" )
             print(e)
 
+    async def detect_event(self, data):
+        try:
+            if isinstance(data, dict) and "path" in data:
+                path = data['path']
+                extract_face = await extract_face_from_image(path)
+
+                if not extract_face:
+                    print("No faces detected in the image.")
+                    return
+
+                faces = await get_model_scores(extract_face)
+
+                if faces is None or len(faces) == 0:
+                    print("Unable to get model scores from the image.")
+                    return
+
+                events = self.find_tenant_events_by_faces(data['tenant_id'], faces)
+
+                token = os.getenv("TELEGRAM_BOT_TOKEN") or ''
+                chat_id = os.getenv("TELEGRAM_BOT_CHAT_ID") or ''
+
+                bot = telegram.Bot(token=token)
+                await bot.send_message(chat_id=chat_id, text="Found some events")
+
+            else:
+                print("Invalid data format or missing event key.")
+        except Exception as e:
+            print("An error occurred during handle_event:" )
+            print(e)
+
     async def find_images(self, event_id, faces):
         where = []
         for face in faces:
             where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.6')
 
-        sql = f'select * from image where event={event_id} and ->(face_of where '
+        sql = f'select event.name from image where event={event_id} and ->(face_of where '
+        sql = sql + ' OR '.join(where) + ')'
+
+        results = await self.db.query(sql)
+
+        if len(results) and results[0]['status'] == 'OK':
+            return results[0]['result']
+
+        return []
+
+    async def find_tenant_events_by_faces(self, tenant_id, faces):
+        where = []
+        for face in faces:
+            where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.6')
+
+        sql = f'select * from image where event.tenant={tenant_id} and ->(face_of where '
         sql = sql + ' OR '.join(where) + ')'
 
         results = await self.db.query(sql)
