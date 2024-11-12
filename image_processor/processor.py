@@ -98,11 +98,17 @@ class Processor:
 
                 events = await self.find_tenant_events_by_faces(data['tenant_id'], faces)
 
+                if len(events) == 0:
+                    return
+
                 token = os.getenv("TELEGRAM_BOT_TOKEN") or ''
                 chat_id = os.getenv("TELEGRAM_BOT_CHAT_ID") or ''
 
                 bot = telegram.Bot(token=token)
-                await bot.send_message(chat_id=chat_id, text="Found some events")
+                await bot.send_photo(
+                        chat_id=chat_id,
+                        photo=path,
+                        caption=f"Found someone `{events[0]['event']['name']}`")
 
             else:
                 print("Invalid data format or missing event key.")
@@ -115,7 +121,7 @@ class Processor:
         for face in faces:
             where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.6')
 
-        sql = f'select event.name from image where event={event_id} and ->(face_of where '
+        sql = f'select * from image where event={event_id} and ->(face_of where '
         sql = sql + ' OR '.join(where) + ')'
 
         results = await self.db.query(sql)
@@ -130,8 +136,9 @@ class Processor:
         for face in faces:
             where.append(f'vector::similarity::cosine({face.tolist()}, out.encoding) > 0.6')
 
-        sql = f'select * from image where event.tenant={tenant_id} and ->(face_of where '
+        sql = f'select event.name from image where event.tenant={tenant_id} and ->(face_of where '
         sql = sql + ' OR '.join(where) + ')'
+        sql = sql + ' group by event.name'
 
         results = await self.db.query(sql)
 
