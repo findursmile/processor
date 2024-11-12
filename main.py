@@ -2,60 +2,55 @@
 import asyncio
 import json
 import pika
-import sys
 import os
-import time
 
-from pika.exceptions import AMQPConnectionError
 from image_processor import processor
 from dotenv import load_dotenv
 
-def main():
-    load_dotenv()
-    credentials = pika.PlainCredentials(os.environ['RABBITMQ_USERNAME'], os.environ['RABBITMQ_PASSWORD'])
-    parameters = pika.ConnectionParameters(
-                host=os.environ['RABBITMQ_HOST'],
-                port=os.environ['RABBITMQ_PORT'],
-                credentials=credentials,
-                heartbeat=60
-                )
-
-    global connection
-    connection = pika.BlockingConnection(
-            parameters=parameters,
+load_dotenv()
+credentials = pika.PlainCredentials(os.environ['RABBITMQ_USERNAME'], os.environ['RABBITMQ_PASSWORD'])
+parameters = pika.ConnectionParameters(
+            host=os.environ['RABBITMQ_HOST'],
+            port=os.environ['RABBITMQ_PORT'],
+            credentials=credentials,
+            heartbeat=60,
+            socket_timeout=120
             )
 
-    channel = connection.channel()
+connection = pika.BlockingConnection(
+    parameters=parameters,
+)
 
-    channel.queue_declare(queue=os.environ['RABBITMQ_QUEUE'])
+channel = connection.channel()
 
-    def callback(ch, method, properties, body):
-        try:
-            print(f" [x] Received {body}")
-            data = json.loads(body.decode('utf-8'))
-            asyncio.run(processor.handle_event(data))
-            print('processed')
-        except Exception as e:
-            print(f"An error occurred while processing message: {e}")
+channel.queue_declare(queue=os.environ['RABBITMQ_QUEUE'])
 
-    channel.basic_consume(
-            queue=os.environ['RABBITMQ_QUEUE'],
-            on_message_callback=callback,
-            auto_ack=True)
+def callback(ch, method, properties, body):
+    try:
+        print(f" [x] Received {body}")
+        data = json.loads(body.decode('utf-8'))
+        asyncio.run(processor.handle_event(data))
+        print('processed')
+    except Exception as e:
+        print(f"An error occurred while processing message: {e}")
 
-    print(' [*] Waiting for messages. To exit press CTRL+C')
+threads = []
+
+channel.basic_consume(
+        queue=os.environ['RABBITMQ_QUEUE'],
+        on_message_callback=callback,
+        auto_ack=True)
+
+print(' [*] Waiting for messages. To exit press CTRL+C')
+
+try:
     channel.start_consuming()
+except KeyboardInterrupt:
+    print('Interrupted')
+    channel.stop_consuming()
 
-if __name__ == '__main__':
-    while True:
-        try:
-            main()
-        except AMQPConnectionError:
-            time.sleep(10)
-        except KeyboardInterrupt:
-            print('Interrupted')
-            try:
-                sys.exit(0)
-            except SystemExit:
-                os._exit(0)
+# Wait for all to complete
+for thread in threads:
+    thread.join()
 
+connection.close()
