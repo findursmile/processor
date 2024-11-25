@@ -4,6 +4,7 @@ import telegram
 from keras import utils
 from surrealdb import Surreal
 from image_processor.detects import extract_face_from_image, get_model_scores
+import urllib.parse
 
 async def handle_event(data):
     pr = Processor()
@@ -31,7 +32,7 @@ class Processor:
 
     async def get_face_encodings(self, image):
         print(f"processing {image['id']}")
-        path = utils.get_file(origin=f'{os.environ["ASSETS_URL"]}/{image["image_uri"]}')
+        path = utils.get_file(origin=os.environ["ASSETS_URL"] + '/' + urllib.parse.quote(image["image_uri"]))
         extract_face = await extract_face_from_image(path)
 
         if not extract_face:

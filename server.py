@@ -13,6 +13,7 @@ origins=[
         "http://localhost:5174",
         "https://localhost:5173",
         "https://localhost:5174",
+        "https://user.serveo.net",
 ]
 
 app.add_middleware(
